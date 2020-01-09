@@ -8,5 +8,7 @@
 <h2>{{ bb.title }}</h2>
 <p>{{ bb.content }}</p>
 <p>Цена: {{ bb.price }} </p>
+<h4><a href="{% url 'edit' pk=bb.pk %}"> Исправить </a></h4>
+<h4><a href="{% url 'delete' pk=bb.pk %}"> Удалить </a></h4>
 
 {% endblock %}

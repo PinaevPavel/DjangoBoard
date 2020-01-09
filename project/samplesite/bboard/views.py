@@ -1,13 +1,14 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from .models import Bb, Rubric
 from django.shortcuts import render
-from django.views.generic.edit import CreateView # базовый класс, реализует функциональность по созданию формы, выводу ее на экран с применением указанного шаблона, 
+from django.views.generic.edit import CreateView, FormView, UpdateView, DeleteView # базовый класс, реализует функциональность по созданию формы, выводу ее на экран с применением указанного шаблона, 
 #получению занесенных данных в форму данных, проверке их на корректность, сохранению их в  новой записи модели и перенаправленю в случае успеха на интернет-адрес, который мы зададим.
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
-from .forms import BbForm # Импорь нужной формы
+
+from .forms import BbForm, RubricFormSet # Импорь нужной формы
 from django.urls import reverse_lazy, reverse # Эта функция принимает имя маршрута и значения всех входящих в маршрут URL параметров
 from django.template.loader import get_template
 
@@ -20,7 +21,23 @@ class BbIndexView(TemplateView):
 		context['rubrics'] = Rubric.objects.all()
 		return context
 
-class BbByRubricView(ListView):
+class RubricView(FormView): #Выводит в наборе форм все имеющиеся рубрики
+	template_name = 'bboard/rubric_edit.html'
+	model = Rubric
+	form_class = RubricFormSet
+	#formset = RubricFormSet(initial=[{'name': 'Новая рубрика'}, {'name': 'Еще одна новая рубрика'}], queryset=Rubric.objects.all()[0:5])
+	success_url = '/bboard'
+
+	def form_valid(self, form):
+		form.save()
+		return super().form_valid(form)
+
+	def get_context_data(self, *args, **kwargs):
+		context = super().get_context_data(*args, **kwargs)
+		context['rubrics'] = Rubric.objects.all()
+		return context
+
+class BbByRubricView(ListView): #Выводит страницу со списком объявлений, которые относятся к выбранной посетителем рубрике
 	template_name = 'bboard/by_rubric.html'
 	context_object_name = 'bbs' #атрибут, задает имя переменной контекста шаблона, в которой будет сохранен извлеченный набор записей
 
@@ -49,31 +66,31 @@ class BbByRubricView(ListView):
 	#context = {'bbs': bbs, 'rubrics': rubrics, 'current_rubric': current_rubric}
 	#return render(request, 'bboard/by_rubric.html', context)
 
-class BbCreateView(CreateView):
-	template_name = 'bboard/create.html' #Путь к файлу шаблона, который будет использован для вывода страницы с формой
-	form_class = BbForm #класс формы, связанный с моделью
-	success_url = reverse_lazy('index') # Интернет адрес, по которому будет выполнено перенаправление после успешного сохранения данных
+#class BbCreateView(CreateView):
+#	template_name = 'bboard/create.html' #Путь к файлу шаблона, который будет использован для вывода страницы с формой
+#	form_class = BbForm #класс формы, связанный с моделью
+#	success_url = reverse_lazy('index') # Интернет адрес, по которому будет выполнено перенаправление после успешного сохранения данных#
 
-	def get_context_data(self, **kwargs): #Метод, который будет генерировать панель навигации, содержащая список рубрик
-		context = super().get_context_data(**kwargs) # получаем контекст шаблона из метода базового класса
-		context['rubrics'] = Rubric.objects.all() # добовляем список рубрик 
-		return context #возвращаем список в качесве результата
+#	def get_context_data(self, **kwargs): #Метод, который будет генерировать панель навигации, содержащая список рубрик
+#		context = super().get_context_data(**kwargs) # получаем контекст шаблона из метода базового класса
+#		context['rubrics'] = Rubric.objects.all() # добовляем список рубрик 
+#		return context #возвращаем список в качесве результата
 
-def add_and_save(request): #Данная контроллер функция выполняет и вывод формы на страницу и отправление POST Запроса с данным формы на сервер.
-	if request.method == 'POST':
-		bbf = BbForm(request.POST)
-		if bbf.is_valid():
-			bbf.save()
-			return HttpResponseRedirect(reverse('by_rubric', kwargs={'rubric_id': bbf.cleaned_data['rubric'].pk})) # Метод HttpResponseRedirect, выполняет перенаправление после выполнения тела функции
-			#kwargs - нужен для формирования параметризированного маршрута. задаются в виде словаря, ключи элементов соответствуют именами URL параметров, а значения элементов зададут значения параметров. 
-			#Функция reverse формирует интернет адрес на основе объвленых в списках маршутор, атрибут cleaned_data, дает доступ к данным класса, получаем данные в виде словаря, фильтруем словарь по рубрики, и получаем его id через pk
-		else:
-			context = {'form': bbf}
-			return render(request, 'bboard/create.html', context)
-	else:
-		bbf = BbForm()
-		context = {'form': bbf}
-		return render(request, 'bboard/create.html', context)
+#def add_and_save(request): #Данная контроллер функция выполняет и вывод формы на страницу и отправление POST Запроса с данным формы на сервер.
+#	if request.method == 'POST':
+#		bbf = BbForm(request.POST)
+#		if bbf.is_valid():
+#			bbf.save()
+#			return HttpResponseRedirect(reverse('by_rubric', kwargs={'rubric_id': bbf.cleaned_data['rubric'].pk})) # Метод HttpResponseRedirect, выполняет перенаправление после выполнения тела функции
+#			#kwargs - нужен для формирования параметризированного маршрута. задаются в виде словаря, ключи элементов соответствуют именами URL параметров, а значения элементов зададут значения параметров. 
+#			#Функция reverse формирует интернет адрес на основе объвленых в списках маршутор, атрибут cleaned_data, дает доступ к данным класса, получаем данные в виде словаря, фильтруем словарь по рубрики, и получаем его id через pk
+#		else:
+#			context = {'form': bbf}
+#			return render(request, 'bboard/create.html', context)
+#	else:
+#		bbf = BbForm()
+#		context = {'form': bbf}
+#		return render(request, 'bboard/create.html', context)
 
 class BbDetailView(DetailView): #Выводит информаци о выбранном посетителем обявлении
 	template_name = 'bboard/bb_detail.html'
@@ -84,3 +101,42 @@ class BbDetailView(DetailView): #Выводит информаци о выбра
 		context['rubrics'] = Rubric.objects.all()
 		return context
 
+class BbAddView(FormView):
+	template_name = 'bboard/create.html'
+	form_class = BbForm
+	initial = {'price': 0.0}
+
+	def get_context_data(self, *args, **kwargs):
+		context = super().get_context_data(*args, **kwargs)
+		context['rubrics'] = Rubric.objects.all()
+		return context
+
+	def form_valid(self, form):
+		form.save()
+		return super().form_valid(form)
+
+	def get_form(self, form_class=None):
+		self.object = super().get_form(form_class)
+		return self.object
+
+	def get_success_url(self):
+		return reverse('by_rubric', kwargs={'rubric_id': self.object.cleaned_data['rubric'].pk})
+
+class BbEditView(UpdateView): #Котроллер-класс для исправления объявления
+	model = Bb
+	form_class = BbForm
+	success_url = '/bboard'
+
+	def get_context_data(self, *args, **kwargs):
+		context = super().get_context_data(*args, **kwargs)
+		context['rubrics'] = Rubric.objects.all()
+		return context
+
+class BbDeleteView(DeleteView):
+	model = Bb
+	success_url = '/bboard'
+
+	def get_context_data(self, *args, **kwargs):
+		context = super().get_context_data(*args, **kwargs)
+		context['rubrics'] = Rubric.objects.all()
+		return context
