@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth.views import LoginView
 
 # from bboard.views import index #Импортируем функцию index
 
@@ -22,4 +23,5 @@ from django.urls import path, include
 urlpatterns = [
 	path('bboard/', include('bboard.urls')), #Устанавливаем для адреса bboard/ вьюху index
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]

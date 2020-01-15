@@ -7,6 +7,11 @@ from django.views.generic.base import TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from django.shortcuts import get_object_or_404
+
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 
 from .forms import BbForm, RubricFormSet # Импорь нужной формы
 from django.urls import reverse_lazy, reverse # Эта функция принимает имя маршрута и значения всех входящих в маршрут URL параметров
@@ -101,10 +106,13 @@ class BbDetailView(DetailView): #Выводит информаци о выбра
 		context['rubrics'] = Rubric.objects.all()
 		return context
 
-class BbAddView(FormView):
+
+class BbAddView(LoginRequiredMixin, SuccessMessageMixin, FormView):
 	template_name = 'bboard/create.html'
 	form_class = BbForm
 	initial = {'price': 0.0}
+	success_url = '/{rubric_id}'
+	success_message = 'Объявление о продаже товара "%(title)s" создано!.'
 
 	def get_context_data(self, *args, **kwargs):
 		context = super().get_context_data(*args, **kwargs)
@@ -122,17 +130,18 @@ class BbAddView(FormView):
 	def get_success_url(self):
 		return reverse('by_rubric', kwargs={'rubric_id': self.object.cleaned_data['rubric'].pk})
 
-class BbEditView(UpdateView): #Котроллер-класс для исправления объявления
+class BbEditView(LoginRequiredMixin, SuccessMessageMixin, UpdateView): #Котроллер-класс для исправления объявления
 	model = Bb
 	form_class = BbForm
 	success_url = '/bboard'
+	success_message = 'Объявление о продаже товара "%(title)s" изменнено.'
 
 	def get_context_data(self, *args, **kwargs):
 		context = super().get_context_data(*args, **kwargs)
 		context['rubrics'] = Rubric.objects.all()
 		return context
 
-class BbDeleteView(DeleteView):
+class BbDeleteView(LoginRequiredMixin, DeleteView):
 	model = Bb
 	success_url = '/bboard'
 
